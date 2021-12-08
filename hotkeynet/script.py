@@ -24,7 +24,7 @@ class Script:
     templates: OrderedDict = attr.ib(factory=OrderedDict)
     hotkeys: OrderedDict = attr.ib(factory=OrderedDict)
     labels: OrderedDict = attr.ib(factory=OrderedDict)
-
+        
     def add_command(self, command: 'Command', ignore_duplicate=False):
         if command.name in self.commands:
             if not ignore_duplicate:
@@ -48,8 +48,8 @@ class Script:
                 raise ValueError(msg)
         self.hotkeys[hotkey.key] = hotkey
 
-    def dump(self):
-        return render_template(_ScriptTemplate, script=self)
+    def dump(self, verbose=True):
+        return render_template(_ScriptTemplate, script=self, verbose=verbose)
 
 
 @attr.s
@@ -60,7 +60,7 @@ class Command:
 
     _template = Path(TPL_DIR, "Command.tpl").read_text(encoding="utf-8")
 
-    def __attrs_post_init__(self):
+    def __attrs_post_init__(    self):
         if self.script is not None:
             self.script.add_command(self)
 
@@ -82,13 +82,14 @@ class Command:
             " " + " ".join(args) if len(args) else ""
         )
 
-    def dump(self) -> str:
+    def dump(self, verbose=True) -> str:
         """
         渲染整个 Command 代码块
 
         :return:
         """
-        print(f"dump Command({self.name}) ...")
+        if verbose:
+            print(f"dump Command({self.name}) ...")
         return remove_empty_line(
             render_template(
                 self._template,
@@ -146,8 +147,11 @@ class Hotkey:
                             and (label in _action.to):
                             raise ValueError(f"label {label} in {action} conflicts with {_action}")
 
-    def dump(self) -> str:
-        print(f"dump Hotkey(name='{self.name}', key='{self.key}') ...")
+
+
+    def dump(self, verbose=True) -> str:
+        if verbose:
+            print(f"dump Hotkey(name='{self.name}', key='{self.key}') ...")
         self.validate()
         if len(self.actions):
             content = remove_empty_line(render_template(
@@ -156,12 +160,14 @@ class Hotkey:
                 render_action=render_action,
             ))
             if content.count("\n") == 0:
-                print("    no action, skip")
+                if verbose:
+                    print("    no action, skip")
                 return ""
             else:
                 return content
         else:
-            print("    no action, skip")
+            if verbose:
+                print("    no action, skip")
             return ""
 
 @attr.s
@@ -328,6 +334,28 @@ class SendLabel(Action):
         else:
             return ""
 
+
+@attr.s
+class SendFocusWindow(Action):
+    name = attr.ib(validator=attr.validators.instance_of(str))
+    actions = attr.ib(factory=list)  # type: typing.List[typing.Union[Action, str]]
+    _template = Path(TPL_DIR, "SendLabel.tpl").read_text(encoding="utf-8")
+
+    @property
+    def title(self) -> str:
+        return f"<SendFocusWin>"
+
+    def dump(self) -> str:
+        if len(self.actions):
+            return remove_empty_line(
+                render_template(
+                    self._template,
+                    send_label=self,
+                    render_action=render_action,
+                )
+            )
+        else:
+            return ""
 
 @attr.s
 class CallCommand(Action):

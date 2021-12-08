@@ -3,11 +3,11 @@
 import jinja2
 
 
-def render_template(content, **kwargs):
+def render_template(content, verbose=True, **kwargs):
     """
     Render jinja2 string template
     """
-    return jinja2.Template(content).render(**kwargs)
+    return jinja2.Template(content).render(verbose=verbose, **kwargs)
 
 
 def remove_comments(content: str) -> str:
@@ -70,3 +70,40 @@ def remove_indent(content: str) -> str:
             values.append(unindent)
     unindent = min(values)
     return "\n".join([line[unindent:] for line in lines])
+
+
+def union_list(*lists) -> list:
+    """
+    Union elements in all given lists.
+    """
+
+    l = list(set.union(*[set(lst) for lst in lists]))
+    l.sort()
+    return l
+
+
+def intersection_list(*lists) -> list:
+    """
+    Common elements in all given lists.
+    """
+    l = list(set.intersection(*[set(lst) for lst in lists]))
+    l.sort()
+    return l
+
+
+def difference_list(lst, *other_lsts) -> list:
+    """
+    Remove all item in ``lst`` that exists in all ``other_lsts``
+    """
+    st = set(lst)
+    for l in other_lsts:
+        st.difference_update(l)
+    l = list(st)
+    l.sort()
+    return l
+
+
+def set_to_list(st) -> list:
+    l = list(st)
+    l.sort()
+    return l
